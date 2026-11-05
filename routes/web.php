@@ -17,6 +17,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
     Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
 
-    // Halaman uji sementara untuk mengecek pembatasan role. Nanti dihapus.
-    Route::get('/admin-test', fn () => 'Halaman khusus Admin')->middleware('role:admin');
+    // Route sementara. Tiap satu akan diganti controller sungguhan di tahap berikutnya.
+    Route::get('/shipments', fn () => view('placeholder', ['title' => 'Shipments']))->name('shipments.index');
+    Route::get('/tracking', fn () => view('placeholder', ['title' => 'Tracking']))->name('tracking.index');
+
+    // Hanya admin dan operator.
+    Route::middleware('role:admin,operator')->group(function () {
+        Route::get('/exceptions', fn () => view('placeholder', ['title' => 'Exceptions']))->name('exceptions.index');
+        Route::get('/carriers', fn () => view('placeholder', ['title' => 'Carriers']))->name('carriers.index');
+        Route::get('/reports', fn () => view('placeholder', ['title' => 'Reports']))->name('reports.index');
+    });
 });
