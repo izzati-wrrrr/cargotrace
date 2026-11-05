@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\CarrierController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route(auth()->check() ? 'dashboard' : 'login'));
@@ -21,10 +22,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/shipments', fn () => view('placeholder', ['title' => 'Shipments']))->name('shipments.index');
     Route::get('/tracking', fn () => view('placeholder', ['title' => 'Tracking']))->name('tracking.index');
 
-    // Hanya admin dan operator.
+    // Admin dan operator.
     Route::middleware('role:admin,operator')->group(function () {
         Route::get('/exceptions', fn () => view('placeholder', ['title' => 'Exceptions']))->name('exceptions.index');
-        Route::get('/carriers', fn () => view('placeholder', ['title' => 'Carriers']))->name('carriers.index');
         Route::get('/reports', fn () => view('placeholder', ['title' => 'Reports']))->name('reports.index');
+
+        Route::resource('carriers', CarrierController::class)->except(['show', 'destroy']);
     });
+
+    // Hapus carrier: hanya admin.
+    Route::delete('/carriers/{carrier}', [CarrierController::class, 'destroy'])
+        ->middleware('role:admin')
+        ->name('carriers.destroy');
 });
