@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\CarrierController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LocationController;
 
 Route::get('/', fn () => redirect()->route(auth()->check() ? 'dashboard' : 'login'));
 
@@ -28,10 +29,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports', fn () => view('placeholder', ['title' => 'Reports']))->name('reports.index');
 
         Route::resource('carriers', CarrierController::class)->except(['show', 'destroy']);
+        Route::resource('locations', LocationController::class)->except(['show', 'destroy']);
     });
 
     // Hapus carrier: hanya admin.
     Route::delete('/carriers/{carrier}', [CarrierController::class, 'destroy'])
         ->middleware('role:admin')
         ->name('carriers.destroy');
+
+    // Hapus location: hanya admin.
+    Route::delete('/locations/{location}', [LocationController::class, 'destroy'])
+        ->middleware('role:admin')
+        ->name('locations.destroy');
 });
