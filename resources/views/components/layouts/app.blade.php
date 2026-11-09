@@ -11,8 +11,8 @@
         ['Shipments',  'shipments.index',  'shipments.*',  'shipments',  $all],
         ['Tracking',   'tracking.index',   'tracking.*',   'tracking',   $all],
         ['Exceptions', 'exceptions.index', 'exceptions.*', 'exceptions', $staff],
-        ['Carriers',   'carriers.index',   'carriers.*',   'carriers',   $staff],
-        ['Locations',  'locations.index',  'locations.*',  'locations',  $staff],
+        ['Carriers',   'carriers.index',   'carriers.*',   'carriers',   ['admin']],
+        ['Locations',  'locations.index',  'locations.*',  'locations',  ['admin']],
         ['Reports',    'reports.index',    'reports.*',    'reports',    $staff],
     ];
 

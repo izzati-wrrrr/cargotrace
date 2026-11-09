@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Enums\ShipmentStatus;
 
 class Shipment extends Model
 {
@@ -36,6 +37,7 @@ class Shipment extends Model
             'expected_departure_at' => 'datetime',
             'expected_arrival_at' => 'datetime',
             'estimated_arrival_at' => 'datetime',
+            'current_status' => ShipmentStatus::class,
         ];
     }
 

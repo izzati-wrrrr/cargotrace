@@ -3,8 +3,9 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\CarrierController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\ShipmentController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route(auth()->check() ? 'dashboard' : 'login'));
 
@@ -19,26 +20,22 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
     Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
 
-    // Route sementara. Tiap satu akan diganti controller sungguhan di tahap berikutnya.
-    Route::get('/shipments', fn () => view('placeholder', ['title' => 'Shipments']))->name('shipments.index');
+    // Shipments: hak akses tiap aksi dicek oleh ShipmentPolicy di controller.
+    Route::resource('shipments', ShipmentController::class);
+    Route::post('/shipments/{shipment}/status', [ShipmentController::class, 'updateStatus'])->name('shipments.status');
+
+    // Route sementara, akan diganti controller sungguhan di tahap berikutnya.
     Route::get('/tracking', fn () => view('placeholder', ['title' => 'Tracking']))->name('tracking.index');
 
     // Admin dan operator.
     Route::middleware('role:admin,operator')->group(function () {
         Route::get('/exceptions', fn () => view('placeholder', ['title' => 'Exceptions']))->name('exceptions.index');
         Route::get('/reports', fn () => view('placeholder', ['title' => 'Reports']))->name('reports.index');
-
-        Route::resource('carriers', CarrierController::class)->except(['show', 'destroy']);
-        Route::resource('locations', LocationController::class)->except(['show', 'destroy']);
     });
 
-    // Hapus carrier: hanya admin.
-    Route::delete('/carriers/{carrier}', [CarrierController::class, 'destroy'])
-        ->middleware('role:admin')
-        ->name('carriers.destroy');
-
-    // Hapus location: hanya admin.
-    Route::delete('/locations/{location}', [LocationController::class, 'destroy'])
-        ->middleware('role:admin')
-        ->name('locations.destroy');
+    // Carrier dan lokasi: hanya admin (slide 5).
+    Route::middleware('role:admin')->group(function () {
+        Route::resource('carriers', CarrierController::class)->except(['show']);
+        Route::resource('locations', LocationController::class)->except(['show']);
+    });
 });
