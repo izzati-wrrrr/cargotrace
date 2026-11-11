@@ -139,10 +139,54 @@ function initShipmentMap() {
     map.fitBounds(L.latLngBounds([origin, destination, ...traveled]), { padding: [30, 30], maxZoom: 8 });
 }
 
+// 4) Peta dashboard: posisi terakhir semua shipment yang masih berjalan.
+function initDashboardMap() {
+    const el = document.getElementById('dashboard-map');
+    if (!el) return;
+
+    const shipments = JSON.parse(el.dataset.shipments || '[]');
+    const map = baseMap(el);
+    const colors = { NONE: '#16a34a', LOW: '#eab308', MEDIUM: '#f97316', HIGH: '#dc2626' };
+    const bounds = [];
+
+    shipments.forEach((s) => {
+        const origin = L.latLng(s.origin[0], s.origin[1]);
+        const destination = L.latLng(s.destination[0], s.destination[1]);
+        const current = L.latLng(s.current[0], s.current[1]);
+
+        // Garis putus-putus tipis = rute asal ke tujuan (garis lurus perkiraan).
+        L.polyline([origin, destination], { color: '#94a3b8', weight: 1.5, dashArray: '4 6' }).addTo(map);
+
+        // Popup dibuat lewat DOM + textContent supaya data dari database tidak dijalankan sebagai HTML.
+        const box = document.createElement('div');
+        const link = document.createElement('a');
+        link.href = s.url;
+        link.textContent = s.number;
+        link.style.fontWeight = '600';
+        box.append(link);
+        [s.status, s.route, s.delay_label, s.time].filter(Boolean).forEach((text) => {
+            const row = document.createElement('div');
+            row.textContent = text;
+            box.append(row);
+        });
+
+        const color = colors[s.delay] || colors.NONE;
+        L.circleMarker(current, { radius: 7, color, fillColor: color, fillOpacity: 0.9 })
+            .bindPopup(box).addTo(map);
+
+        bounds.push(origin, destination, current);
+    });
+
+    if (bounds.length) {
+        map.fitBounds(L.latLngBounds(bounds), { padding: [30, 30], maxZoom: 5 });
+    }
+}
+
 function init() {
     initPicker();
     initOverview();
     initShipmentMap();
+    initDashboardMap();
 }
 
 if (document.readyState === 'loading') {

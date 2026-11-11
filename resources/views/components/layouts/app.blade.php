@@ -43,28 +43,33 @@
     <title>{{ $title ? $title . ' - ' : '' }}CargoTrace</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-slate-100 text-slate-800">
-<div class="flex min-h-screen">
+<body class="min-h-screen bg-foam text-slate-800 antialiased">
 
-    {{-- Sidebar --}}
-    <aside class="fixed inset-y-0 left-0 flex w-60 flex-col bg-slate-900 text-slate-300">
-        <div class="px-6 py-5 text-lg font-bold text-white">CargoTrace</div>
+    {{-- Sidebar: panel melayang di layar lebar, menjadi blok di atas pada layar kecil --}}
+    <aside class="m-3 flex flex-col rounded-2xl bg-harbor-900 text-slate-300 lg:fixed lg:inset-y-3 lg:left-3 lg:m-0 lg:w-56">
+        <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-5 py-5">
+            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-tide-500">
+                <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M7 18c7 0 3-12 10-12"/></svg>
+            </span>
+            <span class="font-display text-xl font-semibold text-white">CargoTrace</span>
+        </a>
 
-        <nav class="flex-1 space-y-1 px-3">
+        <nav class="flex flex-wrap gap-1 px-3 pb-3 lg:flex-1 lg:flex-col lg:flex-nowrap lg:overflow-y-auto">
             @foreach ($menu as [$label, $route, $pattern, $icon, $roles])
                 @if (in_array($user->role, $roles, true))
-                    <a href="{{ route($route) }}"
-                       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs($pattern) ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
-                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{!! $icons[$icon] !!}</svg>
+                    @php($active = request()->routeIs($pattern))
+                    <a href="{{ route($route) }}" @if ($active) aria-current="page" @endif
+                       class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tide-300 {{ $active ? 'bg-white text-harbor-900' : 'hover:bg-white/10 hover:text-white' }}">
+                        <svg class="h-5 w-5 {{ $active ? 'text-tide-600' : '' }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{!! $icons[$icon] !!}</svg>
                         {{ $label }}
                     </a>
                 @endif
             @endforeach
         </nav>
 
-        <form method="POST" action="{{ route('logout') }}" class="border-t border-slate-800 p-3">
+        <form method="POST" action="{{ route('logout') }}" class="border-t border-white/10 p-3">
             @csrf
-            <button type="submit" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white">
+            <button type="submit" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tide-300">
                 <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{!! $icons['logout'] !!}</svg>
                 Log Out
             </button>
@@ -72,49 +77,48 @@
     </aside>
 
     {{-- Konten --}}
-    <div class="ml-60 flex-1">
-        <header class="flex items-center justify-between border-b border-slate-200 bg-white px-8 py-4">
-            <h1 class="text-xl font-bold">{{ $title }}</h1>
+    <div class="lg:pl-64">
+        <header class="flex flex-wrap items-center justify-between gap-4 px-4 pt-2 lg:px-8 lg:pt-6">
+            <h1 class="font-display text-2xl font-semibold text-harbor-900">{{ $title }}</h1>
 
-            <div class="flex items-center gap-5">
+            <div class="flex items-center gap-3">
                 <form method="GET" action="{{ route('shipments.index') }}" class="relative">
-                    <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{!! $icons['search'] !!}</svg>
+                    <svg class="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{!! $icons['search'] !!}</svg>
                     <input type="search" name="q" value="{{ request('q') }}" placeholder="Search shipment..."
-                           class="w-64 rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm">
+                           class="w-48 rounded-full border-0 bg-white py-2 pl-10 pr-4 text-sm ring-1 ring-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-tide-500 sm:w-64">
                 </form>
 
-                <div class="relative">
-                    <svg class="h-6 w-6 text-slate-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{!! $icons['bell'] !!}</svg>
+                <div class="relative flex h-10 w-10 items-center justify-center rounded-full bg-white ring-1 ring-slate-200">
+                    <svg class="h-5 w-5 text-slate-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{!! $icons['bell'] !!}</svg>
                     @if ($unread > 0)
-                        <span class="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">{{ $unread }}</span>
+                        <span class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">{{ $unread }}</span>
                     @endif
                 </div>
 
                 <details class="relative">
-                    <summary class="flex cursor-pointer list-none items-center gap-2">
-                        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">{{ $initials }}</span>
-                        <span class="text-sm font-medium">{{ $user->name }}</span>
+                    <summary class="flex cursor-pointer list-none items-center gap-2 rounded-full bg-white py-1 pl-1 pr-4 ring-1 ring-slate-200">
+                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-buoy-500 text-sm font-bold text-harbor-950">{{ $initials }}</span>
+                        <span class="hidden text-sm font-medium sm:inline">{{ $user->name }}</span>
                     </summary>
-                    <div class="absolute right-0 z-10 mt-2 w-48 rounded-lg border border-slate-200 bg-white p-3 text-sm shadow">
-                        <p class="font-medium">{{ $user->name }}</p>
+                    <div class="absolute right-0 z-20 mt-2 w-56 rounded-xl bg-white p-4 text-sm shadow-lg ring-1 ring-slate-200">
+                        <p class="font-semibold">{{ $user->name }}</p>
                         <p class="text-xs text-slate-500">{{ $user->email }}</p>
-                        <p class="mt-1 inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold uppercase text-slate-600">{{ $user->role }}</p>
+                        <p class="mt-2 inline-block rounded-full bg-tide-50 px-2.5 py-0.5 text-xs font-semibold capitalize text-tide-600">{{ $user->role }}</p>
                     </div>
                 </details>
             </div>
         </header>
 
-        <main class="p-8">
+        <main class="px-4 pb-10 pt-6 lg:px-8">
             @if (session('success'))
-                <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{{ session('success') }}</div>
+                <div class="mb-5 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800 ring-1 ring-green-200">{{ session('success') }}</div>
             @endif
             @if (session('error'))
-                <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ session('error') }}</div>
+                <div class="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">{{ session('error') }}</div>
             @endif
 
             {{ $slot }}
         </main>
     </div>
-</div>
 </body>
 </html>
