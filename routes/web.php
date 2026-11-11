@@ -3,8 +3,11 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\CarrierController;
+use App\Http\Controllers\ExceptionController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ShipmentController;
+use App\Http\Controllers\TrackingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route(auth()->check() ? 'dashboard' : 'login'));
@@ -23,19 +26,24 @@ Route::middleware('auth')->group(function () {
     // Shipments: hak akses tiap aksi dicek oleh ShipmentPolicy di controller.
     Route::resource('shipments', ShipmentController::class);
     Route::post('/shipments/{shipment}/status', [ShipmentController::class, 'updateStatus'])->name('shipments.status');
+    Route::post('/shipments/{shipment}/eta', [ShipmentController::class, 'updateEta'])->name('shipments.eta');
+    Route::post('/shipments/{shipment}/events', [TrackingController::class, 'store'])->name('shipments.events.store');
+    Route::post('/shipments/{shipment}/exceptions', [ExceptionController::class, 'store'])->name('shipments.exceptions.store');
+    Route::post('/exceptions/{exception}/status', [ExceptionController::class, 'updateStatus'])->name('exceptions.status');
 
-    // Route sementara, akan diganti controller sungguhan di tahap berikutnya.
-    Route::get('/tracking', fn () => view('placeholder', ['title' => 'Tracking']))->name('tracking.index');
+    Route::get('/tracking', [TrackingController::class, 'index'])->name('tracking.index');
 
     // Admin dan operator.
     Route::middleware('role:admin,operator')->group(function () {
-        Route::get('/exceptions', fn () => view('placeholder', ['title' => 'Exceptions']))->name('exceptions.index');
+        Route::get('/exceptions', [ExceptionController::class, 'index'])->name('exceptions.index');
         Route::get('/reports', fn () => view('placeholder', ['title' => 'Reports']))->name('reports.index');
     });
 
-    // Carrier dan lokasi: hanya admin (slide 5).
+    // Carrier, lokasi, dan pengaturan: hanya admin (slide 5).
     Route::middleware('role:admin')->group(function () {
         Route::resource('carriers', CarrierController::class)->except(['show']);
         Route::resource('locations', LocationController::class)->except(['show']);
+        Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
+        Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
     });
 });

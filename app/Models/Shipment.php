@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\DelaySeverity;
+use App\Enums\ShipmentStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Enums\ShipmentStatus;
 
 class Shipment extends Model
 {
@@ -38,6 +40,7 @@ class Shipment extends Model
             'expected_arrival_at' => 'datetime',
             'estimated_arrival_at' => 'datetime',
             'current_status' => ShipmentStatus::class,
+            'delay_severity' => DelaySeverity::class,
         ];
     }
 
@@ -74,6 +77,15 @@ class Shipment extends Model
     public function trackingEvents(): HasMany
     {
         return $this->hasMany(TrackingEvent::class)->orderBy('occurred_at');
+    }
+
+    /** Event terbaru yang punya koordinat = posisi terakhir shipment. */
+    public function latestPositionEvent(): HasOne
+    {
+        return $this->hasOne(TrackingEvent::class)->ofMany(
+            ['occurred_at' => 'max', 'id' => 'max'],
+            fn ($query) => $query->whereNotNull('latitude')->whereNotNull('longitude'),
+        );
     }
 
     public function exceptions(): HasMany

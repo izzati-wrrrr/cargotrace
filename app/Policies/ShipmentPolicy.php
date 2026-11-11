@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\ShipmentStatus;
 use App\Models\Shipment;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
@@ -41,6 +42,27 @@ class ShipmentPolicy
     }
 
     public function changeStatus(User $user, Shipment $shipment): bool
+    {
+        return $this->isStaff($user);
+    }
+
+    public function addEvent(User $user, Shipment $shipment): bool
+    {
+        return $this->isStaff($user);
+    }
+
+    public function updateEta(User $user, Shipment $shipment): Response|bool
+    {
+        if (! $this->isStaff($user)) {
+            return false;
+        }
+
+        return in_array($shipment->current_status, [ShipmentStatus::PickedUp, ShipmentStatus::InTransit], true)
+            ? true
+            : Response::deny('ETA hanya bisa diperbarui saat shipment berstatus PICKED UP atau IN TRANSIT.');
+    }
+
+    public function manageExceptions(User $user, Shipment $shipment): bool
     {
         return $this->isStaff($user);
     }

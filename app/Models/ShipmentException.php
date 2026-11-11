@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\DelaySeverity;
+use App\Enums\ExceptionStatus;
+use App\Enums\ExceptionType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -22,6 +25,9 @@ class ShipmentException extends Model
     protected function casts(): array
     {
         return [
+            'type' => ExceptionType::class,
+            'severity' => DelaySeverity::class,
+            'status' => ExceptionStatus::class,
             'detected_at' => 'datetime',
             'resolved_at' => 'datetime',
         ];
@@ -29,7 +35,8 @@ class ShipmentException extends Model
 
     public function shipment(): BelongsTo
     {
-        return $this->belongsTo(Shipment::class);
+        // withTrashed: exception tetap terbaca walaupun shipment-nya sudah di-soft-delete.
+        return $this->belongsTo(Shipment::class)->withTrashed();
     }
 
     public function reporter(): BelongsTo

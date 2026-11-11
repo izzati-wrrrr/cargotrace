@@ -91,9 +91,58 @@ function initOverview() {
     }
 }
 
+// 3) Peta rute satu shipment: asal, tujuan, titik tracking, dan garis perjalanan.
+function initShipmentMap() {
+    const el = document.getElementById('shipment-map');
+    if (!el) return;
+
+    const data = JSON.parse(el.dataset.map);
+    const map = baseMap(el);
+
+    // Popup dibuat lewat textContent supaya teks dari database tidak dijalankan sebagai HTML.
+    const popup = (lines) => {
+        const box = document.createElement('div');
+        lines.filter(Boolean).forEach((text, i) => {
+            const row = document.createElement('div');
+            if (i === 0) row.style.fontWeight = '600';
+            row.textContent = text;
+            box.append(row);
+        });
+        return box;
+    };
+
+    const origin = L.latLng(data.origin.lat, data.origin.lng);
+    const destination = L.latLng(data.destination.lat, data.destination.lng);
+    const traveled = data.points.map((p) => L.latLng(p.lat, p.lng));
+
+    L.circleMarker(origin, { radius: 8, color: '#15803d', fillColor: '#22c55e', fillOpacity: 1 })
+        .bindPopup(popup(['Asal', data.origin.name])).addTo(map);
+    L.circleMarker(destination, { radius: 8, color: '#b91c1c', fillColor: '#ef4444', fillOpacity: 1 })
+        .bindPopup(popup(['Tujuan', data.destination.name])).addTo(map);
+
+    // Garis biru = perjalanan yang sudah terjadi.
+    if (traveled.length > 1) {
+        L.polyline(traveled, { color: '#1d4ed8', weight: 3 }).addTo(map);
+    }
+
+    // Garis putus-putus = sisa perjalanan (garis lurus perkiraan, bukan rute sebenarnya).
+    const from = traveled.length ? traveled[traveled.length - 1] : origin;
+    L.polyline([from, destination], { color: '#64748b', weight: 2, dashArray: '6 8' }).addTo(map);
+
+    data.points.forEach((p, i) => {
+        const isLast = i === data.points.length - 1;
+        const color = p.exception ? '#b91c1c' : '#1d4ed8';
+        L.circleMarker([p.lat, p.lng], { radius: isLast ? 7 : 5, color, fillColor: color, fillOpacity: isLast ? 1 : 0.6 })
+            .bindPopup(popup([p.type, p.time, p.place])).addTo(map);
+    });
+
+    map.fitBounds(L.latLngBounds([origin, destination, ...traveled]), { padding: [30, 30], maxZoom: 8 });
+}
+
 function init() {
     initPicker();
     initOverview();
+    initShipmentMap();
 }
 
 if (document.readyState === 'loading') {

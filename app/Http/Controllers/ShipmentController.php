@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ExceptionType;
 use App\Enums\ShipmentStatus;
+use App\Enums\TrackingEventType;
 use App\Http\Requests\ShipmentRequest;
 use App\Models\Carrier;
 use App\Models\Location;
 use App\Models\Shipment;
 use App\Models\User;
+use App\Services\DelayService;
 use App\Services\ShipmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +19,7 @@ use Illuminate\Validation\Rule;
 
 class ShipmentController extends Controller
 {
-    public function __construct(private ShipmentService $service)
+    public function __construct(private ShipmentService $service, private DelayService $delay)
     {
     }
 
@@ -72,8 +75,38 @@ class ShipmentController extends Controller
 
         $shipment->load(['customer', 'carrier', 'origin', 'destination', 'items', 'trackingEvents.location', 'trackingEvents.creator']);
 
+        // Data untuk peta rute (dibaca oleh resources/js/maps.js).
+        $mapData = [
+            'origin' => [
+                'name' => $shipment->origin->name,
+                'lat' => $shipment->origin->latitude,
+                'lng' => $shipment->origin->longitude,
+            ],
+            'destination' => [
+                'name' => $shipment->destination->name,
+                'lat' => $shipment->destination->latitude,
+                'lng' => $shipment->destination->longitude,
+            ],
+            'points' => $shipment->trackingEvents
+                ->filter(fn ($e) => $e->latitude !== null && $e->longitude !== null)
+                ->map(fn ($e) => [
+                    'lat' => $e->latitude,
+                    'lng' => $e->longitude,
+                    'type' => str_replace('_', ' ', $e->event_type),
+                    'time' => $e->occurred_at->format('d M Y H:i'),
+                    'place' => $e->location?->name,
+                    'exception' => $e->is_exception,
+                ])
+                ->values(),
+        ];
+
         return view('shipments.show', [
             'shipment' => $shipment,
+            'mapData' => $mapData,
+            'delay' => $this->delay->evaluate($shipment),
+            'exceptions' => $shipment->exceptions()->with(['reporter', 'resolver'])->latest('detected_at')->get(),
+            'eventTypes' => TrackingEventType::cases(),
+            'exceptionTypes' => ExceptionType::cases(),
             'locations' => Location::orderBy('country_code')->orderBy('name')->get(['id', 'name', 'city', 'country_code']),
         ]);
     }
@@ -113,6 +146,23 @@ class ShipmentController extends Controller
         );
 
         return back()->with('success', 'Status shipment diperbarui.');
+    }
+
+    public function updateEta(Request $request, Shipment $shipment): RedirectResponse
+    {
+        Gate::authorize('updateEta', $shipment);
+
+        $data = $request->validate([
+            'estimated_arrival_at' => ['required', 'date', 'after:' . $shipment->expected_departure_at->format('Y-m-d H:i:s')],
+            'reason' => ['required', 'string', 'max:255'],
+        ], [
+            'estimated_arrival_at.after' => 'ETA harus setelah perkiraan berangkat.',
+            'reason.required' => 'Alasan perubahan ETA wajib diisi.',
+        ]);
+
+        $this->service->updateEta($shipment, $data['estimated_arrival_at'], $data['reason'], $request->user());
+
+        return back()->with('success', 'ETA diperbarui dan tingkat keterlambatan dihitung ulang.');
     }
 
     public function destroy(Shipment $shipment): RedirectResponse
