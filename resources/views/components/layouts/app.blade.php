@@ -33,6 +33,9 @@
 
     $unread = $user->unreadNotifications()->count();
     $initials = \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($user->name, 0, 2));
+
+    // Daftar mata uang untuk dropdown "Mata uang tampilan" (di-cache, dari tabel currencies).
+    $currencyOptions = app(\App\Services\ExchangeRateService::class)->options();
 @endphp
 
 <!DOCTYPE html>
@@ -104,6 +107,19 @@
                         <p class="font-semibold">{{ $user->name }}</p>
                         <p class="text-xs text-slate-500">{{ $user->email }}</p>
                         <p class="mt-2 inline-block rounded-full bg-tide-50 px-2.5 py-0.5 text-xs font-semibold capitalize text-tide-600">{{ $user->role }}</p>
+
+                        @if (count($currencyOptions))
+                            <form method="POST" action="{{ route('preferences.currency') }}" class="mt-3 border-t border-slate-100 pt-3">
+                                @csrf
+                                <label for="pref_currency" class="block text-xs font-medium text-slate-500">Mata uang tampilan</label>
+                                <select id="pref_currency" name="currency_code" onchange="this.form.submit()"
+                                        class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm">
+                                    @foreach ($currencyOptions as $code => $label)
+                                        <option value="{{ $code }}" @selected($user->currency_code === $code)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </form>
+                        @endif
                     </div>
                 </details>
             </div>

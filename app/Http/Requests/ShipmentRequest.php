@@ -17,6 +17,11 @@ class ShipmentRequest extends FormRequest
             : $this->user()->can('create', Shipment::class);
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['currency_code' => strtoupper((string) $this->input('currency_code'))]);
+    }
+
     public function rules(): array
     {
         return [
@@ -27,6 +32,8 @@ class ShipmentRequest extends FormRequest
             'cargo_type' => ['required', 'string', 'max:100'],
             'weight_kg' => ['required', 'numeric', 'gt:0', 'max:9999999999'],
             'volume_cbm' => ['nullable', 'numeric', 'gt:0', 'max:9999999999'],
+            'freight_amount' => ['required', 'numeric', 'gt:0', 'max:999999999999'],
+            'currency_code' => ['required', 'string', 'size:3', Rule::exists('currencies', 'code')],
             'expected_departure_at' => ['required', 'date'],
             'expected_arrival_at' => ['required', 'date', 'after:expected_departure_at'],
 
@@ -42,6 +49,7 @@ class ShipmentRequest extends FormRequest
         return [
             'destination_location_id.different' => 'Lokasi asal dan tujuan tidak boleh sama.',
             'expected_arrival_at.after' => 'Perkiraan tiba harus setelah perkiraan berangkat.',
+            'currency_code.exists' => 'Mata uang tidak dikenal. Pastikan kurs sudah diperbarui di menu Settings.',
             'items.required' => 'Minimal harus ada satu barang.',
             'items.min' => 'Minimal harus ada satu barang.',
         ];

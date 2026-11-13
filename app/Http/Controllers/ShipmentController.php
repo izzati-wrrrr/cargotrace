@@ -8,9 +8,11 @@ use App\Enums\TrackingEventType;
 use App\Http\Requests\ShipmentRequest;
 use App\Models\Carrier;
 use App\Models\Location;
+use App\Models\Setting;
 use App\Models\Shipment;
 use App\Models\User;
 use App\Services\DelayService;
+use App\Services\ExchangeRateService;
 use App\Services\ShipmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,8 +21,11 @@ use Illuminate\Validation\Rule;
 
 class ShipmentController extends Controller
 {
-    public function __construct(private ShipmentService $service, private DelayService $delay)
-    {
+    public function __construct(
+        private ShipmentService $service,
+        private DelayService $delay,
+        private ExchangeRateService $rates,
+    ) {
     }
 
     public function index(Request $request)
@@ -54,6 +59,8 @@ class ShipmentController extends Controller
     {
         Gate::authorize('create', Shipment::class);
 
+        $this->rates->ensureFresh();
+
         return view('shipments.create', $this->formData());
     }
 
@@ -69,7 +76,7 @@ class ShipmentController extends Controller
             ->with('success', "Shipment {$shipment->shipment_number} berhasil dibuat.");
     }
 
-    public function show(Shipment $shipment)
+    public function show(Request $request, Shipment $shipment)
     {
         Gate::authorize('view', $shipment);
 
@@ -100,9 +107,26 @@ class ShipmentController extends Controller
                 ->values(),
         ];
 
+        // Biaya pengiriman: nilai asli plus konversi ke mata uang pilihan user.
+        // Staf juga melihat mata uang dasar perusahaan.
+        $cost = null;
+        if ($shipment->freight_amount !== null && $shipment->currency_code) {
+            $this->rates->ensureFresh();
+
+            $viewer = $request->user();
+            $targets = array_filter([
+                $viewer->currency_code,
+                $viewer->isCustomer() ? null : Setting::getValue('base_currency', 'IDR'),
+            ]);
+
+            $cost = $this->rates->describe((float) $shipment->freight_amount, $shipment->currency_code, $targets);
+            $cost['status'] = $this->rates->status();
+        }
+
         return view('shipments.show', [
             'shipment' => $shipment,
             'mapData' => $mapData,
+            'cost' => $cost,
             'delay' => $this->delay->evaluate($shipment),
             'exceptions' => $shipment->exceptions()->with(['reporter', 'resolver'])->latest('detected_at')->get(),
             'eventTypes' => TrackingEventType::cases(),
@@ -180,6 +204,7 @@ class ShipmentController extends Controller
             'customers' => User::where('role', 'customer')->where('is_active', true)->orderBy('name')->get(['id', 'name', 'email']),
             'carriers' => Carrier::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
             'locations' => Location::orderBy('country_code')->orderBy('name')->get(['id', 'name', 'city', 'country_code']),
+            'currencies' => $this->rates->options(),
         ];
     }
 }

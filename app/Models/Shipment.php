@@ -26,6 +26,8 @@ class Shipment extends Model
         'cargo_type',
         'weight_kg',
         'volume_cbm',
+        'freight_amount',
+        'currency_code',
         'expected_departure_at',
         'expected_arrival_at',
         'estimated_arrival_at',
@@ -36,6 +38,7 @@ class Shipment extends Model
         return [
             'weight_kg' => 'decimal:2',
             'volume_cbm' => 'decimal:2',
+            'freight_amount' => 'decimal:2',
             'expected_departure_at' => 'datetime',
             'expected_arrival_at' => 'datetime',
             'estimated_arrival_at' => 'datetime',
@@ -79,7 +82,9 @@ class Shipment extends Model
         return $this->hasMany(TrackingEvent::class)->orderBy('occurred_at');
     }
 
-    /** Event terbaru yang punya koordinat = posisi terakhir shipment. */
+    /**
+     * Event terbaru yang punya koordinat = posisi terakhir shipment.
+     */
     public function latestPositionEvent(): HasOne
     {
         return $this->hasOne(TrackingEvent::class)->ofMany(

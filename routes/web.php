@@ -3,12 +3,13 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\CarrierController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExceptionController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\PreferenceController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\TrackingController;
-use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route(auth()->check() ? 'dashboard' : 'login'));
@@ -23,6 +24,7 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/preferences/currency', [PreferenceController::class, 'currency'])->name('preferences.currency');
 
     // Shipments: hak akses tiap aksi dicek oleh ShipmentPolicy di controller.
     Route::resource('shipments', ShipmentController::class);
@@ -46,5 +48,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('locations', LocationController::class)->except(['show']);
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
+        Route::put('/settings/currency', [SettingController::class, 'updateCurrency'])->name('settings.currency');
+        Route::post('/settings/rates', [SettingController::class, 'refreshRates'])->middleware('throttle:3,1')->name('settings.rates');
     });
 });

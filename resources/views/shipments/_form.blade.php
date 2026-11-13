@@ -5,6 +5,7 @@
         : [['description' => '', 'quantity' => 1, 'weight_kg' => '']]);
     $itemErrors = collect($errors->getMessages())->filter(fn ($m, $k) => str_starts_with($k, 'items'))->flatten();
     $field = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2';
+    $selectedCurrency = old('currency_code', $shipment?->currency_code ?? auth()->user()->currency_code);
 @endphp
 
 <div class="space-y-5">
@@ -84,6 +85,29 @@
             <input id="expected_arrival_at" type="datetime-local" name="expected_arrival_at"
                    value="{{ old('expected_arrival_at', $shipment?->expected_arrival_at?->format('Y-m-d\TH:i')) }}" required class="{{ $field }}">
             @error('expected_arrival_at') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+            <label for="freight_amount" class="block text-sm font-medium text-slate-700">Biaya pengiriman</label>
+            <input id="freight_amount" type="number" step="any" min="0" name="freight_amount"
+                   value="{{ old('freight_amount', $shipment?->freight_amount) }}" required class="{{ $field }}">
+            @error('freight_amount') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+        </div>
+        <div>
+            <label for="currency_code" class="block text-sm font-medium text-slate-700">Mata uang pembayaran</label>
+            <select id="currency_code" name="currency_code" required class="{{ $field }}">
+                @forelse ($currencies as $code => $label)
+                    <option value="{{ $code }}" @selected($selectedCurrency === $code)>{{ $label }}</option>
+                @empty
+                    <option value="">Kurs belum tersedia</option>
+                @endforelse
+            </select>
+            @if (! count($currencies))
+                <p class="mt-1 text-sm text-amber-700">Admin perlu menekan "Perbarui kurs sekarang" di menu Settings terlebih dahulu.</p>
+            @endif
+            @error('currency_code') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
         </div>
     </div>
 

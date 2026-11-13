@@ -62,6 +62,10 @@
                     </dl>
                 </div>
 
+                @if ($cost)
+                    <x-shipment-cost :cost="$cost" />
+                @endif
+
                 <div class="rounded-xl bg-white p-6 shadow">
                     <div class="mb-3 flex items-center gap-3">
                         <h2 class="font-semibold">ETA &amp; keterlambatan</h2>
@@ -331,4 +335,4 @@
             </div>
         </div>
     </div>
-</x-layouts.app> 
+</x-layouts.app>
