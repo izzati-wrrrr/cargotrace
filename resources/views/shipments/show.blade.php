@@ -5,6 +5,9 @@
     $lastPosition = $shipment->trackingEvents->filter(fn ($e) => $e->latitude !== null && $e->longitude !== null)->last();
     $field = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm';
     $etaValue = ($shipment->estimated_arrival_at ?? $shipment->expected_arrival_at)->format('Y-m-d\TH:i');
+
+    // Angka berformat Indonesia (titik ribuan, koma desimal), sama dengan format mata uang di kartu biaya.
+    $num = fn ($value) => \Illuminate\Support\Number::format((float) $value, precision: 2, locale: 'id');
 @endphp
 
 <x-layouts.app :title="$shipment->shipment_number">
@@ -41,7 +44,7 @@
                         <div><dt class="text-slate-500">Asal</dt><dd class="font-medium">{{ $shipment->origin->name }}, {{ $shipment->origin->country_code }}</dd></div>
                         <div><dt class="text-slate-500">Tujuan</dt><dd class="font-medium">{{ $shipment->destination->name }}, {{ $shipment->destination->country_code }}</dd></div>
                         <div><dt class="text-slate-500">Jenis muatan</dt><dd class="font-medium">{{ $shipment->cargo_type }}</dd></div>
-                        <div><dt class="text-slate-500">Berat / Volume</dt><dd class="font-medium">{{ number_format($shipment->weight_kg, 2) }} kg / {{ $shipment->volume_cbm ? number_format($shipment->volume_cbm, 2).' CBM' : '-' }}</dd></div>
+                        <div><dt class="text-slate-500">Berat / Volume</dt><dd class="font-medium">{{ $num($shipment->weight_kg) }} kg / {{ $shipment->volume_cbm ? $num($shipment->volume_cbm).' CBM' : '-' }}</dd></div>
                         <div><dt class="text-slate-500">Perkiraan berangkat</dt><dd class="font-medium">{{ $shipment->expected_departure_at->format('d M Y H:i') }}</dd></div>
                         <div><dt class="text-slate-500">Perkiraan tiba</dt><dd class="font-medium">{{ $shipment->expected_arrival_at->format('d M Y H:i') }}</dd></div>
                         <div>
@@ -112,7 +115,7 @@
                                 <tr>
                                     <td class="px-4 py-2">{{ $item->description }}</td>
                                     <td class="px-4 py-2">{{ $item->quantity }}</td>
-                                    <td class="px-4 py-2">{{ $item->weight_kg ? number_format($item->weight_kg, 2) : '-' }}</td>
+                                    <td class="px-4 py-2">{{ $item->weight_kg ? $num($item->weight_kg) : '-' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -211,11 +214,11 @@
                                 <p class="text-xs text-slate-500">Atau isi koordinat manual (diutamakan jika diisi):</p>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <input type="number" step="any" name="latitude" value="{{ old('latitude') }}" placeholder="Latitude" class="{{ $field }} mt-0">
+                                        <input type="number" step="any" name="latitude" value="{{ old('latitude') }}" placeholder="Latitude" aria-label="Latitude" class="{{ $field }} mt-0">
                                         @error('latitude') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                     </div>
                                     <div>
-                                        <input type="number" step="any" name="longitude" value="{{ old('longitude') }}" placeholder="Longitude" class="{{ $field }} mt-0">
+                                        <input type="number" step="any" name="longitude" value="{{ old('longitude') }}" placeholder="Longitude" aria-label="Longitude" class="{{ $field }} mt-0">
                                         @error('longitude') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                     </div>
                                 </div>
@@ -252,12 +255,12 @@
                                     <form method="POST" action="{{ route('exceptions.status', $ex) }}" class="mt-3 space-y-2 border-t border-slate-100 pt-3">
                                         @csrf
                                         <input type="hidden" name="exception_id" value="{{ $ex->id }}">
-                                        <select name="new_status" class="{{ $field }} mt-0">
+                                        <select name="new_status" aria-label="Status exception berikutnya" class="{{ $field }} mt-0">
                                             @foreach ($ex->status->allowedNext() as $n)
                                                 <option value="{{ $n->value }}">{{ $n->value }}</option>
                                             @endforeach
                                         </select>
-                                        <input type="text" name="note" maxlength="500" placeholder="Catatan (wajib saat RESOLVED)" class="{{ $field }} mt-0">
+                                        <input type="text" name="note" maxlength="500" placeholder="Catatan (wajib saat RESOLVED)" aria-label="Catatan exception" class="{{ $field }} mt-0">
                                         @if ((string) old('exception_id') === (string) $ex->id)
                                             @error('new_status') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
                                             @error('note') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
@@ -277,7 +280,7 @@
                                 @csrf
                                 <p class="text-sm font-medium text-slate-700">Laporkan exception baru</p>
                                 <div>
-                                    <select name="type" required class="{{ $field }} mt-0">
+                                    <select name="type" required aria-label="Jenis exception" class="{{ $field }} mt-0">
                                         @foreach ($exceptionTypes as $t)
                                             <option value="{{ $t->value }}" @selected(old('type') === $t->value)>{{ str_replace('_', ' ', $t->value) }}</option>
                                         @endforeach
@@ -285,7 +288,7 @@
                                     @error('type') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <select name="severity" required class="{{ $field }} mt-0">
+                                    <select name="severity" required aria-label="Tingkat keparahan" class="{{ $field }} mt-0">
                                         @foreach (['LOW', 'MEDIUM', 'HIGH'] as $s)
                                             <option value="{{ $s }}" @selected(old('severity') === $s)>Severity {{ $s }}</option>
                                         @endforeach
@@ -293,11 +296,11 @@
                                     @error('severity') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <input type="datetime-local" name="detected_at" required value="{{ old('detected_at', now()->format('Y-m-d\TH:i')) }}" class="{{ $field }} mt-0">
+                                    <input type="datetime-local" name="detected_at" required aria-label="Waktu deteksi" value="{{ old('detected_at', now()->format('Y-m-d\TH:i')) }}" class="{{ $field }} mt-0">
                                     @error('detected_at') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <textarea name="details" rows="2" maxlength="500" placeholder="Keterangan (opsional)" class="{{ $field }} mt-0">{{ old('details') }}</textarea>
+                                    <textarea name="details" rows="2" maxlength="500" placeholder="Keterangan (opsional)" aria-label="Keterangan exception" class="{{ $field }} mt-0">{{ old('details') }}</textarea>
                                     @error('details') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                 </div>
                                 <button type="submit" class="w-full rounded-lg bg-red-600 py-2 text-sm font-medium text-white hover:bg-red-500">Laporkan exception</button>
